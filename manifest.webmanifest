@@ -1,0 +1,10 @@
+{
+  "name": "Документы на подпись",
+  "short_name": "Документы",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
+  "lang": "ru",
+  "description": "Учёт и архив документов на подпись и печать"
+}
