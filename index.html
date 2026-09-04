@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f2f2f7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Документы" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>Документы на подпись</title>
+  <style>
+    :root{
+      --bg:#f2f2f7; --card:#fff; --text:#111; --muted:#6e6e73; --line:#e5e5ea;
+      --blue:#007aff; --red:#ff3b30; --orange:#ff9500; --green:#34c759; --purple:#5856d6;
+      --shadow:0 8px 30px rgba(0,0,0,.06);
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#000; --card:#1c1c1e; --text:#fff; --muted:#98989d; --line:#38383a;
+        --blue:#0a84ff; --red:#ff453a; --orange:#ff9f0a; --green:#30d158; --purple:#5e5ce6;
+        --shadow:none;
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
+    body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    .screen{display:none}
+    .screen.active{display:block}
+    .topbar{
+      position:sticky;top:0;z-index:10;
+      background:color-mix(in srgb,var(--bg) 88%, transparent);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+      border-bottom:1px solid var(--line);
+    }
+    .topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{font-size:30px;line-height:1.1;margin:0;font-weight:750}
+    .sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .content{padding:16px;max-width:760px;margin:0 auto}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+    .stat{background:var(--card);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+    .stat .n{font-size:26px;font-weight:750}
+    .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+    .search{width:100%;border:0;background:var(--card);color:var(--text);border-radius:14px;padding:13px 14px;outline:none;box-shadow:var(--shadow)}
+    .filters{display:flex;gap:8px;overflow:auto;padding:12px 0 4px;scrollbar-width:none}
+    .chip{border:0;border-radius:999px;background:var(--card);color:var(--text);padding:9px 13px;white-space:nowrap}
+    .chip.active{background:var(--blue);color:#fff}
+    .doc-card{background:var(--card);border-radius:18px;padding:15px;margin:12px 0;box-shadow:var(--shadow);border-left:4px solid transparent}
+    .doc-card.overdue{border-left-color:var(--red)}
+    .doc-card.urgent{border-left-color:var(--orange)}
+    .doc-card.done{border-left-color:var(--green);opacity:.82}
+    .doc-head{display:flex;justify-content:space-between;gap:12px}
+    .company{font-weight:750;font-size:17px}
+    .doctype{font-size:12px;font-weight:700;color:var(--blue);margin-top:3px;text-transform:uppercase}
+    .deadline{font-size:13px;font-weight:700;text-align:right}
+    .deadline.red{color:var(--red)}
+    .deadline.orange{color:var(--orange)}
+    .deadline.green{color:var(--green)}
+    .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .meta .item{background:var(--bg);border-radius:12px;padding:10px}
+    .meta .k{font-size:11px;color:var(--muted)}
+    .meta .v{font-size:14px;margin-top:2px;word-break:break-word}
+    .comment{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:14px;white-space:pre-wrap}
+    .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+    .badge{font-size:11px;padding:5px 8px;border-radius:999px;background:var(--bg);color:var(--muted)}
+    .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .btn{border:0;border-radius:12px;padding:10px 12px;background:var(--bg);color:var(--text);font-weight:650}
+    .btn.primary{background:var(--blue);color:#fff}
+    .btn.green{background:var(--green);color:#fff}
+    .btn.red{color:var(--red)}
+    .btn.wide{width:100%;padding:14px}
+    .empty{text-align:center;color:var(--muted);padding:48px 20px}
+    .form-card,.settings-card{background:var(--card);border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+    label{display:block;font-size:13px;color:var(--muted);margin:12px 2px 6px}
+    input,select,textarea{
+      width:100%;border:0;border-radius:12px;background:var(--bg);color:var(--text);
+      padding:13px 12px;outline:none;
+    }
+    textarea{min-height:90px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .toggles{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .toggle{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:10px 12px}
+    .toggle input{width:auto}
+    .section-title{font-size:13px;color:var(--muted);margin:18px 4px 8px;text-transform:uppercase;font-weight:700}
+    .entity-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+    .entity-row:last-child{border-bottom:0}
+    .small{font-size:12px;color:var(--muted)}
+    .danger{color:var(--red)}
+    .bottomnav{
+      position:fixed;left:0;right:0;bottom:0;z-index:20;
+      background:color-mix(in srgb,var(--card) 92%, transparent);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border-top:1px solid var(--line);
+      padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+      display:grid;grid-template-columns:repeat(4,1fr);
+    }
+    .navbtn{border:0;background:transparent;color:var(--muted);padding:6px 2px;font-size:11px}
+    .navbtn span{display:block;font-size:22px;line-height:1.15;margin-bottom:2px}
+    .navbtn.active{color:var(--blue);font-weight:700}
+    .plus-circle{width:38px;height:38px;border-radius:50%;display:inline-flex!important;align-items:center;justify-content:center;background:var(--blue);color:#fff;margin:0 auto 2px!important;font-size:28px!important}
+    .modal{
+      position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:none;align-items:flex-end;
+    }
+    .modal.open{display:flex}
+    .sheet{
+      width:100%;max-height:90vh;overflow:auto;background:var(--bg);
+      border-radius:22px 22px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));
+    }
+    .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .sheet h2{margin:0;font-size:22px}
+    .iconbtn{border:0;background:transparent;color:var(--blue);font-size:16px;font-weight:650}
+    .notice{font-size:12px;color:var(--muted);line-height:1.4}
+    .status-pill{font-size:11px;border-radius:999px;padding:4px 8px;font-weight:700}
+    .status-wait{background:rgba(255,149,0,.14);color:var(--orange)}
+    .status-signed{background:rgba(52,199,89,.14);color:var(--green)}
+    .status-returned{background:rgba(88,86,214,.14);color:var(--purple)}
+    @media (max-width:560px){
+      .meta,.row{grid-template-columns:1fr}
+      .stats{gap:8px}
+      .stat{padding:12px 10px}
+      .stat .n{font-size:22px}
+    }
+  </style>
+</head>
+<body>
+
+<section id="screen-docs" class="screen active">
+  <div class="topbar">
+    <div class="topline">
+      <div>
+        <h1>Документы</h1>
+        <div class="sub" id="todayText"></div>
+      </div>
+      <button class="iconbtn" onclick="openAdd()">+ Добавить</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="stats">
+      <div class="stat"><div class="n" id="statPending">0</div><div class="l">На подпись</div></div>
+      <div class="stat"><div class="n" id="statOverdue">0</div><div class="l">Просрочено</div></div>
+      <div class="stat"><div class="n" id="statToday">0</div><div class="l">Срок сегодня</div></div>
+    </div>
+    <input id="search" class="search" placeholder="🔎 Поиск по документам" oninput="renderDocs()" />
+    <div class="filters">
+      <button class="chip active" data-filter="all" onclick="setFilter('all',this)">Все</button>
+      <button class="chip" data-filter="pending" onclick="setFilter('pending',this)">На подпись</button>
+      <button class="chip" data-filter="urgent" onclick="setFilter('urgent',this)">Срочные</button>
+      <button class="chip" data-filter="overdue" onclick="setFilter('overdue',this)">Просроченные</button>
+      <button class="chip" data-filter="done" onclick="setFilter('done',this)">Готовые</button>
+    </div>
+    <div id="docsList"></div>
+  </div>
+</section>
+
+<section id="screen-add" class="screen">
+  <div class="topbar"><div class="topline"><h1 id="formTitle">Новый документ</h1></div></div>
+  <div class="content">
+    <div class="form-card">
+      <label>Юридическое лицо *</label>
+      <select id="company"></select>
+
+      <label>От кого пришёл документ *</label>
+      <input id="sender" placeholder="Например: ООО «Альфа» / Иванов И.И." />
+
+      <div class="row">
+        <div>
+          <label>Дата получения *</label>
+          <input id="receivedDate" type="date" />
+        </div>
+        <div>
+          <label>Подписать до *</label>
+          <input id="dueDate" type="date" />
+        </div>
+      </div>
+
+      <label>Тип документа *</label>
+      <select id="docType" onchange="toggleCustomType()">
+        <option>УПД</option>
+        <option>Счёт</option>
+        <option>Доверенность</option>
+        <option>Договор</option>
+        <option>Письмо</option>
+        <option>Другое</option>
+      </select>
+
+      <div id="customTypeWrap" style="display:none">
+        <label>Свой тип документа</label>
+        <input id="customType" placeholder="Например: акт, доп. соглашение" />
+      </div>
+
+      <div class="toggles">
+        <label class="toggle"><input id="needsSign" type="checkbox" checked /> Нужна подпись</label>
+        <label class="toggle"><input id="needsStamp" type="checkbox" checked /> Нужна печать</label>
+      </div>
+
+      <label>Комментарий</label>
+      <textarea id="comment" placeholder="Что именно сделать, кому вернуть, на каких страницах поставить печать и т.п."></textarea>
+
+      <label>Статус</label>
+      <select id="status">
+        <option value="pending">На подпись</option>
+        <option value="signed">Подписан</option>
+        <option value="returned">Возвращён</option>
+      </select>
+
+      <div style="height:12px"></div>
+      <button class="btn primary wide" onclick="saveDocument()">Сохранить документ</button>
+      <button id="cancelEditBtn" class="btn wide" style="margin-top:8px;display:none" onclick="cancelEdit()">Отменить редактирование</button>
+    </div>
+  </div>
+</section>
+
+<section id="screen-companies" class="screen">
+  <div class="topbar"><div class="topline"><h1>Юрлица</h1></div></div>
+  <div class="content">
+    <div class="form-card">
+      <label>Добавить юридическое лицо</label>
+      <div class="row">
+        <input id="newCompany" placeholder="ООО «Ветро»" />
+        <button class="btn primary" onclick="addCompany()">Добавить</button>
+      </div>
+    </div>
+    <div class="form-card" id="companiesList"></div>
+  </div>
+</section>
+
+<section id="screen-settings" class="screen">
+  <div class="topbar"><div class="topline"><h1>Настройки</h1></div></div>
+  <div class="content">
+    <div class="settings-card">
+      <div class="section-title" style="margin-top:0">Резервная копия</div>
+      <button class="btn wide" onclick="exportBackup()">Скачать резервную копию JSON</button>
+      <label>Восстановить из резервной копии</label>
+      <input id="importFile" type="file" accept=".json,application/json" onchange="importBackup(event)" />
+      <p class="notice">Данные хранятся локально в браузере на этом iPhone. Резервная копия нужна на случай очистки Safari, смены телефона или переустановки.</p>
+    </div>
+
+    <div class="settings-card">
+      <div class="section-title" style="margin-top:0">Экспорт для работы</div>
+      <button class="btn wide" onclick="exportCSV()">Скачать список документов CSV</button>
+    </div>
+
+    <div class="settings-card">
+      <div class="section-title" style="margin-top:0">Опасная зона</div>
+      <button class="btn wide danger" onclick="clearAll()">Удалить все данные</button>
+    </div>
+
+    <p class="notice">Это приложение ведёт учёт документов на подпись и печать. Оно не является системой электронной подписи и не накладывает квалифицированную электронную подпись на файлы.</p>
+  </div>
+</section>
+
+<nav class="bottomnav">
+  <button class="navbtn active" data-screen="docs" onclick="showScreen('docs',this)"><span>📄</span>Документы</button>
+  <button class="navbtn" data-screen="add" onclick="showScreen('add',this)"><span class="plus-circle">+</span>Добавить</button>
+  <button class="navbtn" data-screen="companies" onclick="showScreen('companies',this)"><span>🏢</span>Юрлица</button>
+  <button class="navbtn" data-screen="settings" onclick="showScreen('settings',this)"><span>⚙️</span>Настройки</button>
+</nav>
+
+<div id="detailModal" class="modal" onclick="closeDetail(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-head"><h2>Документ</h2><button class="iconbtn" onclick="closeDetail()">Закрыть</button></div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<script>
+const LS_DOCS='docflow_docs_v1';
+const LS_COMPANIES='docflow_companies_v1';
+let docs = safeParse(localStorage.getItem(LS_DOCS), []);
+let companies = safeParse(localStorage.getItem(LS_COMPANIES), []);
+let currentFilter='all';
+let editingId=null;
+
+function safeParse(v,fallback){try{return v?JSON.parse(v):fallback}catch{return fallback}}
+function saveAll(){
+  localStorage.setItem(LS_DOCS,JSON.stringify(docs));
+  localStorage.setItem(LS_COMPANIES,JSON.stringify(companies));
+}
+function localDateStr(d=new Date()){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function parseLocal(s){return s?new Date(s+'T00:00:00'):null}
+function daysDiff(a,b){return Math.round((parseLocal(a)-parseLocal(b))/86400000)}
+function fmt(s){
+  if(!s)return '—';
+  return parseLocal(s).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function esc(s=''){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function statusText(s){return s==='signed'?'Подписан':s==='returned'?'Возвращён':'На подпись'}
+function statusClass(s){return s==='signed'?'status-signed':s==='returned'?'status-returned':'status-wait'}
+
+function deadlineInfo(doc){
+  if(doc.status!=='pending') return {cls:'green',card:'done',text:statusText(doc.status)};
+  const today=localDateStr();
+  const diff=daysDiff(doc.dueDate,today);
+  if(diff<0) return {cls:'red',card:'overdue',text:`Просрочено на ${Math.abs(diff)} дн.`};
+  if(diff===0) return {cls:'orange',card:'urgent',text:'Срок сегодня'};
+  if(diff===1) return {cls:'orange',card:'urgent',text:'Срок завтра'};
+  if(diff<=3) return {cls:'orange',card:'urgent',text:`Осталось ${diff} дн.`};
+  return {cls:'',card:'',text:`До ${fmt(doc.dueDate)}`};
+}
+
+function showScreen(name,btn){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));
+  const nav=btn || document.querySelector(`.navbtn[data-screen="${name}"]`);
+  if(nav)nav.classList.add('active');
+  if(name==='docs') renderDocs();
+  if(name==='companies') renderCompanies();
+  if(name==='add' && !editingId) resetForm();
+  window.scrollTo(0,0);
+}
+function openAdd(){editingId=null;showScreen('add');resetForm()}
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  renderDocs();
+}
+function renderStats(){
+  const today=localDateStr();
+  const pending=docs.filter(d=>d.status==='pending');
+  document.getElementById('statPending').textContent=pending.length;
+  document.getElementById('statOverdue').textContent=pending.filter(d=>d.dueDate<today).length;
+  document.getElementById('statToday').textContent=pending.filter(d=>d.dueDate===today).length;
+}
+function renderDocs(){
+  renderStats();
+  const q=(document.getElementById('search').value||'').trim().toLowerCase();
+  const today=localDateStr();
+  let list=docs.filter(d=>{
+    const text=[d.company,d.sender,d.docType,d.customType,d.comment,statusText(d.status)].join(' ').toLowerCase();
+    if(q && !text.includes(q)) return false;
+    const diff=daysDiff(d.dueDate,today);
+    if(currentFilter==='pending' && d.status!=='pending') return false;
+    if(currentFilter==='overdue' && !(d.status==='pending' && diff<0)) return false;
+    if(currentFilter==='urgent' && !(d.status==='pending' && diff>=0 && diff<=3)) return false;
+    if(currentFilter==='done' && d.status==='pending') return false;
+    return true;
+  });
+  list.sort((a,b)=>{
+    if(a.status==='pending' && b.status!=='pending') return -1;
+    if(a.status!=='pending' && b.status==='pending') return 1;
+    return (a.dueDate||'9999').localeCompare(b.dueDate||'9999') || (b.createdAt||0)-(a.createdAt||0);
+  });
+
+  const box=document.getElementById('docsList');
+  if(!list.length){box.innerHTML='<div class="empty">Документов пока нет</div>';return}
+  box.innerHTML=list.map(d=>{
+    const dl=deadlineInfo(d);
+    const type=d.docType==='Другое'?(d.customType||'Другое'):d.docType;
+    return `<div class="doc-card ${dl.card}">
+      <div class="doc-head">
+        <div><div class="company">${esc(d.company)}</div><div class="doctype">${esc(type)}</div></div>
+        <div><div class="deadline ${dl.cls}">${esc(dl.text)}</div><div style="margin-top:5px;text-align:right"><span class="status-pill ${statusClass(d.status)}">${statusText(d.status)}</span></div></div>
+      </div>
+      <div class="meta">
+        <div class="item"><div class="k">От кого</div><div class="v">${esc(d.sender)}</div></div>
+        <div class="item"><div class="k">Получен</div><div class="v">${fmt(d.receivedDate)}</div></div>
+        <div class="item"><div class="k">Подписать до</div><div class="v">${fmt(d.dueDate)}</div></div>
+        <div class="item"><div class="k">Нужно</div><div class="v">${[d.needsSign?'подпись':'',d.needsStamp?'печать':''].filter(Boolean).join(' + ')||'—'}</div></div>
+      </div>
+      ${d.comment?`<div class="comment">${esc(d.comment)}</div>`:''}
+      <div class="actions">
+        <button class="btn" onclick="openDetail('${d.id}')">Подробнее</button>
+        <button class="btn" onclick="editDoc('${d.id}')">Изменить</button>
+        ${d.status==='pending'?`<button class="btn green" onclick="markSigned('${d.id}')">✓ Подписан</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function resetForm(){
+  editingId=null;
+  document.getElementById('formTitle').textContent='Новый документ';
+  document.getElementById('cancelEditBtn').style.display='none';
+  refreshCompanySelect();
+  document.getElementById('sender').value='';
+  document.getElementById('receivedDate').value=localDateStr();
+  document.getElementById('dueDate').value=localDateStr();
+  document.getElementById('docType').value='УПД';
+  document.getElementById('customType').value='';
+  document.getElementById('customTypeWrap').style.display='none';
+  document.getElementById('needsSign').checked=true;
+  document.getElementById('needsStamp').checked=true;
+  document.getElementById('comment').value='';
+  document.getElementById('status').value='pending';
+}
+function refreshCompanySelect(selected=''){
+  const sel=document.getElementById('company');
+  sel.innerHTML=companies.length
+    ? companies.map(c=>`<option ${c===selected?'selected':''}>${esc(c)}</option>`).join('')
+    : '<option value="">Сначала добавьте юрлицо</option>';
+}
+function toggleCustomType(){
+  document.getElementById('customTypeWrap').style.display=document.getElementById('docType').value==='Другое'?'block':'none';
+}
+function saveDocument(){
+  const company=document.getElementById('company').value.trim();
+  const sender=document.getElementById('sender').value.trim();
+  const receivedDate=document.getElementById('receivedDate').value;
+  const dueDate=document.getElementById('dueDate').value;
+  const docType=document.getElementById('docType').value;
+  const customType=document.getElementById('customType').value.trim();
+  if(!company){alert('Сначала добавьте и выберите юридическое лицо.');return}
+  if(!sender){alert('Укажите, от кого пришёл документ.');return}
+  if(!receivedDate||!dueDate){alert('Укажите дату получения и срок подписания.');return}
+  if(docType==='Другое'&&!customType){alert('Введите свой тип документа.');return}
+  const obj={
+    id:editingId || (Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
+    company,sender,receivedDate,dueDate,docType,customType,
+    needsSign:document.getElementById('needsSign').checked,
+    needsStamp:document.getElementById('needsStamp').checked,
+    comment:document.getElementById('comment').value.trim(),
+    status:document.getElementById('status').value,
+    createdAt:editingId?(docs.find(d=>d.id===editingId)?.createdAt||Date.now()):Date.now(),
+    updatedAt:Date.now()
+  };
+  if(editingId) docs=docs.map(d=>d.id===editingId?obj:d); else docs.push(obj);
+  saveAll();
+  editingId=null;
+  showScreen('docs');
+}
+function editDoc(id){
+  const d=docs.find(x=>x.id===id); if(!d)return;
+  editingId=id; showScreen('add');
+  document.getElementById('formTitle').textContent='Редактирование';
+  document.getElementById('cancelEditBtn').style.display='block';
+  refreshCompanySelect(d.company);
+  document.getElementById('sender').value=d.sender;
+  document.getElementById('receivedDate').value=d.receivedDate;
+  document.getElementById('dueDate').value=d.dueDate;
+  document.getElementById('docType').value=d.docType;
+  document.getElementById('customType').value=d.customType||'';
+  document.getElementById('needsSign').checked=!!d.needsSign;
+  document.getElementById('needsStamp').checked=!!d.needsStamp;
+  document.getElementById('comment').value=d.comment||'';
+  document.getElementById('status').value=d.status;
+  toggleCustomType();
+}
+function cancelEdit(){editingId=null;resetForm();showScreen('docs')}
+function markSigned(id){
+  const d=docs.find(x=>x.id===id); if(!d)return;
+  d.status='signed'; d.updatedAt=Date.now(); saveAll(); renderDocs();
+}
+function markReturned(id){
+  const d=docs.find(x=>x.id===id); if(!d)return;
+  d.status='returned'; d.updatedAt=Date.now(); saveAll(); renderDocs(); openDetail(id);
+}
+function deleteDoc(id){
+  if(!confirm('Удалить этот документ?'))return;
+  docs=docs.filter(x=>x.id!==id); saveAll(); closeDetail(); renderDocs();
+}
+function openDetail(id){
+  const d=docs.find(x=>x.id===id); if(!d)return;
+  const type=d.docType==='Другое'?(d.customType||'Другое'):d.docType;
+  document.getElementById('detailBody').innerHTML=`
+    <div class="form-card">
+      <div class="company">${esc(d.company)}</div>
+      <div class="doctype">${esc(type)}</div>
+      <div class="meta">
+        <div class="item"><div class="k">От кого</div><div class="v">${esc(d.sender)}</div></div>
+        <div class="item"><div class="k">Получен</div><div class="v">${fmt(d.receivedDate)}</div></div>
+        <div class="item"><div class="k">Подписать до</div><div class="v">${fmt(d.dueDate)}</div></div>
+        <div class="item"><div class="k">Статус</div><div class="v">${statusText(d.status)}</div></div>
+      </div>
+      <div class="badges">
+        ${d.needsSign?'<span class="badge">✍️ Подпись</span>':''}
+        ${d.needsStamp?'<span class="badge">🔵 Печать</span>':''}
+      </div>
+      ${d.comment?`<div class="comment">${esc(d.comment)}</div>`:''}
+      <div class="actions">
+        <button class="btn primary" onclick="closeDetail();editDoc('${d.id}')">Изменить</button>
+        ${d.status==='pending'?`<button class="btn green" onclick="markSigned('${d.id}');closeDetail()">✓ Подписан</button>`:''}
+        ${d.status!=='returned'?`<button class="btn" onclick="markReturned('${d.id}')">Возвращён</button>`:''}
+        <button class="btn red" onclick="deleteDoc('${d.id}')">Удалить</button>
+      </div>
+    </div>`;
+  document.getElementById('detailModal').classList.add('open');
+}
+function closeDetail(e){
+  if(e && e.target!==document.getElementById('detailModal'))return;
+  document.getElementById('detailModal').classList.remove('open');
+}
+
+function addCompany(){
+  const input=document.getElementById('newCompany');
+  const name=input.value.trim();
+  if(!name)return;
+  if(companies.some(c=>c.toLowerCase()===name.toLowerCase())){alert('Такое юрлицо уже есть.');return}
+  companies.push(name); companies.sort((a,b)=>a.localeCompare(b,'ru')); saveAll(); input.value=''; renderCompanies(); refreshCompanySelect();
+}
+function renderCompanies(){
+  const box=document.getElementById('companiesList');
+  if(!companies.length){box.innerHTML='<div class="empty">Юрлица ещё не добавлены</div>';return}
+  box.innerHTML=companies.map((c,i)=>`<div class="entity-row"><div><div>${esc(c)}</div><div class="small">${docs.filter(d=>d.company===c).length} документов</div></div><button class="btn red" onclick="removeCompany(${i})">Удалить</button></div>`).join('');
+}
+function removeCompany(i){
+  const c=companies[i];
+  if(docs.some(d=>d.company===c)){alert('Это юрлицо используется в документах. Сначала измените или удалите связанные документы.');return}
+  if(!confirm(`Удалить «${c}»?`))return;
+  companies.splice(i,1); saveAll(); renderCompanies(); refreshCompanySelect();
+}
+
+function exportBackup(){
+  const data={version:1,exportedAt:new Date().toISOString(),companies,docs};
+  downloadBlob(JSON.stringify(data,null,2),'documents-backup.json','application/json');
+}
+function importBackup(e){
+  const file=e.target.files?.[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      if(!Array.isArray(data.docs)||!Array.isArray(data.companies)) throw new Error();
+      if(!confirm('Заменить текущие данные данными из резервной копии?'))return;
+      docs=data.docs; companies=data.companies; saveAll(); renderDocs(); renderCompanies(); refreshCompanySelect(); alert('Данные восстановлены.');
+    }catch{alert('Не удалось прочитать резервную копию.')}
+    e.target.value='';
+  };
+  r.readAsText(file);
+}
+function exportCSV(){
+  const rows=[['Юрлицо','Тип','От кого','Получен','Подписать до','Подпись','Печать','Статус','Комментарий']];
+  docs.forEach(d=>rows.push([
+    d.company,d.docType==='Другое'?(d.customType||'Другое'):d.docType,d.sender,d.receivedDate,d.dueDate,
+    d.needsSign?'Да':'Нет',d.needsStamp?'Да':'Нет',statusText(d.status),d.comment||''
+  ]));
+  const csv='\uFEFF'+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+  downloadBlob(csv,'documents.csv','text/csv;charset=utf-8');
+}
+function downloadBlob(text,name,type){
+  const blob=new Blob([text],{type}); const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+function clearAll(){
+  if(!confirm('Удалить ВСЕ документы и юрлица? Это действие нельзя отменить без резервной копии.'))return;
+  if(!confirm('Точно удалить все данные?'))return;
+  docs=[];companies=[];saveAll();renderDocs();renderCompanies();refreshCompanySelect();
+}
+
+document.getElementById('todayText').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+refreshCompanySelect();
+resetForm();
+renderDocs();
+renderCompanies();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
