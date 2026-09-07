@@ -189,7 +189,7 @@ function exportCSV(){if(!isAdmin())return;const rows=[['Запросил','Юр�
 function modalIsOpen(id){return document.getElementById(id)?.classList.contains('open')}
 document.addEventListener('keydown',e=>{
  const tag=(e.target.tagName||'').toLowerCase(),typing=['input','textarea','select'].includes(tag);
- if((e.key==='n'||e.key==='N')&&!typing&&!e.ctrlKey&&!e.metaKey&&isAdmin()){e.preventDefault();openAdd();return}
+ if((e.key==='n'||e.key==='N'||e.key==='Н'||e.key==='н')&&!typing&&!e.ctrlKey&&!e.metaKey&&isAdmin()){e.preventDefault();openAdd();return}
  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'&&modalIsOpen('docModal')){e.preventDefault();saveDocument();return}
  if(e.key==='Escape'&&modalIsOpen('docModal')){closeModal();return}
  if(modalIsOpen('docModal')&&e.key==='Enter'&&!e.ctrlKey&&!e.metaKey&&tag!=='textarea'){
